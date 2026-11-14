@@ -1,0 +1,484 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/TideSand/tidebox/tidebox/api/schema.json",
+  "title": "TideBox tape",
+  "description": "One recorded agent run: threads of model calls with the tool calls run between them. Mirrors tidebox/api/tape.py. Times are milliseconds since meta.started_at. Version 1 stores every request in full; version 2 stores a step's request as a delta against the previous step's of the same thread (tidebox/api/delta.py).",
+  "type": "object",
+  "required": [
+    "version",
+    "meta",
+    "threads"
+  ],
+  "properties": {
+    "version": {
+      "enum": [
+        1,
+        2
+      ]
+    },
+    "meta": {
+      "$ref": "#/$defs/meta"
+    },
+    "threads": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/thread"
+      }
+    }
+  },
+  "$defs": {
+    "meta": {
+      "type": "object",
+      "required": [
+        "tape_id",
+        "harness",
+        "provider",
+        "model",
+        "started_at"
+      ],
+      "properties": {
+        "tape_id": {
+          "type": "string"
+        },
+        "harness": {
+          "type": "string",
+          "description": "claude-code, codex, ...: the harness that made the recording"
+        },
+        "harness_version": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "provider": {
+          "type": "string",
+          "description": "anthropic, openai: selects the provider adapter"
+        },
+        "model": {
+          "type": "string"
+        },
+        "started_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "task": {
+          "type": "object",
+          "description": "free-form: benchmark, task id, image"
+        },
+        "replay_of": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "tape_id of the recording this tape is a replay of"
+        },
+        "labels": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "thread": {
+      "type": "object",
+      "required": [
+        "id",
+        "steps"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "parent": {
+          "description": "[thread id, tool call id] that spawned this thread; null for the main thread",
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "array",
+              "prefixItems": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "string"
+                }
+              ],
+              "minItems": 2,
+              "maxItems": 2
+            }
+          ]
+        },
+        "steps": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/step"
+          }
+        }
+      }
+    },
+    "step": {
+      "type": "object",
+      "required": [
+        "index",
+        "request",
+        "response",
+        "tool_calls",
+        "tool_results",
+        "timing"
+      ],
+      "properties": {
+        "index": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "request": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/request"
+            },
+            {
+              "$ref": "#/$defs/request_delta"
+            }
+          ],
+          "description": "the full request (always for a thread's first step, and for every step in version 1), or in version 2 a delta against the previous step's request"
+        },
+        "response": {
+          "$ref": "#/$defs/response"
+        },
+        "tool_calls": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/tool_call"
+          },
+          "description": "parsed from the response"
+        },
+        "tool_results": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/tool_result"
+          },
+          "description": "taken from the thread's next request"
+        },
+        "timing": {
+          "$ref": "#/$defs/timing"
+        }
+      }
+    },
+    "content_block": {
+      "type": "object",
+      "required": [
+        "type"
+      ],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "text",
+            "thinking",
+            "tool_use",
+            "tool_result",
+            "image",
+            "other"
+          ]
+        },
+        "text": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "tool_call_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "name": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "input": {
+          "type": [
+            "object",
+            "null"
+          ]
+        },
+        "is_error": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "raw": {
+          "description": "the provider's own block, when it was kept"
+        }
+      }
+    },
+    "message": {
+      "type": "object",
+      "required": [
+        "role",
+        "content"
+      ],
+      "properties": {
+        "role": {
+          "type": "string"
+        },
+        "content": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/content_block"
+          }
+        }
+      }
+    },
+    "request": {
+      "type": "object",
+      "properties": {
+        "system": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "messages": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/message"
+          }
+        },
+        "tools": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        },
+        "params": {
+          "type": "object",
+          "description": "model, max_tokens, temperature, thinking..."
+        },
+        "stream": {
+          "type": "boolean"
+        },
+        "raw": {
+          "type": "object",
+          "description": "the body as sent, minus credentials"
+        },
+        "headers": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "path": {
+          "type": "string"
+        }
+      }
+    },
+    "response": {
+      "type": "object",
+      "properties": {
+        "content": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/content_block"
+          }
+        },
+        "stop_reason": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "usage": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "integer"
+          }
+        },
+        "raw": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "description": "the complete body, for non-streamed responses"
+        },
+        "chunks": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "description": "the stream as received, for byte-exact and time-exact replay",
+          "items": {
+            "type": "object",
+            "required": [
+              "at_ms",
+              "data"
+            ],
+            "properties": {
+              "at_ms": {
+                "type": "integer"
+              },
+              "data": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "status": {
+          "type": "integer"
+        },
+        "headers": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "tool_call": {
+      "type": "object",
+      "required": [
+        "id",
+        "name",
+        "input"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "input": {
+          "type": "object"
+        }
+      }
+    },
+    "tool_result": {
+      "type": "object",
+      "required": [
+        "tool_call_id",
+        "content"
+      ],
+      "properties": {
+        "tool_call_id": {
+          "type": "string"
+        },
+        "content": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/content_block"
+          }
+        },
+        "is_error": {
+          "type": "boolean"
+        },
+        "duration_ms": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        }
+      }
+    },
+    "timing": {
+      "type": "object",
+      "required": [
+        "request_at"
+      ],
+      "properties": {
+        "request_at": {
+          "type": "integer"
+        },
+        "first_byte_at": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "last_byte_at": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "next_request_at": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "description": "when the thread's next request was sent; tools ran in between"
+        }
+      }
+    },
+    "request_delta": {
+      "type": "object",
+      "required": [
+        "$delta"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "$delta": {
+          "$ref": "#/$defs/delta_object"
+        }
+      },
+      "description": "Version 2 only. The previous step's request with these changes applied."
+    },
+    "delta_object": {
+      "type": "object",
+      "description": "One entry per key of the encoded dict, in the dict's key order; a key absent here is absent from the dict. {\"$same\": 1} copies the previous value; {\"$shared\": n, \"$new\": [...]} is a list whose first n items are the previous list's, followed by the new ones; {\"$delta\": {...}} is a nested dict encoded the same way; any other value is the value itself.",
+      "additionalProperties": {
+        "anyOf": [
+          {
+            "type": "object",
+            "required": [
+              "$same"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "$same": {
+                "const": 1
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "$shared",
+              "$new"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "$shared": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "$new": {
+                "type": "array"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "$delta"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "$delta": {
+                "$ref": "#/$defs/delta_object"
+              }
+            }
+          },
+          {}
+        ]
+      }
+    }
+  }
+}

@@ -1,0 +1,37 @@
+diff --git a/criu/sockets.c b/criu/sockets.c
+index f9ce999..388423e 100644
+--- a/criu/sockets.c
++++ b/criu/sockets.c
+@@ -676,11 +676,30 @@ int dump_socket_opts(int sk, SkOptsEntry *soe)
+ 	soe->so_reuseport = val ? true : false;
+ 	soe->has_so_reuseport = true;
+ 
+-	ret |= dump_opt(sk, SOL_SOCKET, SO_PASSCRED, &val);
++	/*
++	 * Since Linux 6.16 SO_PASSCRED and SO_PASSSEC exist only on AF_UNIX,
++	 * AF_NETLINK and AF_BLUETOOTH sockets; elsewhere getsockopt fails with
++	 * EOPNOTSUPP, which means the option is off.
++	 */
++	val = 0;
++	if (getsockopt(sk, SOL_SOCKET, SO_PASSCRED, &val, &(socklen_t){ sizeof(val) }) < 0) {
++		if (errno != EOPNOTSUPP) {
++			pr_perror("Can't get SO_PASSCRED");
++			ret |= -1;
++		}
++		val = 0;
++	}
+ 	soe->has_so_passcred = true;
+ 	soe->so_passcred = val ? true : false;
+ 
+-	ret |= dump_opt(sk, SOL_SOCKET, SO_PASSSEC, &val);
++	val = 0;
++	if (getsockopt(sk, SOL_SOCKET, SO_PASSSEC, &val, &(socklen_t){ sizeof(val) }) < 0) {
++		if (errno != EOPNOTSUPP) {
++			pr_perror("Can't get SO_PASSSEC");
++			ret |= -1;
++		}
++		val = 0;
++	}
+ 	soe->has_so_passsec = true;
+ 	soe->so_passsec = val ? true : false;
+ 
