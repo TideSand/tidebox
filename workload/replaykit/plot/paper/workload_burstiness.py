@@ -67,20 +67,20 @@ for _, color, recs in MODELS:
         print(f"{bench:24s} {recs[bench]:26s} peak/mean {q(r):>16s}  bursts {len(l):4d} length s {q(l):>16s}")
 
 PANELS = [("Peak / mean CPU", "{:.0f}×", "(a) Spikiness", violin), ("Burst length (s)", "{:.0f} s", "(b) Burst length", box)]
-with plt.rc_context({"font.family": "sans-serif", "font.weight": "bold", "axes.labelweight": "bold", "axes.labelsize": 12,
-                     "xtick.labelsize": 11, "ytick.labelsize": 11, "axes.linewidth": 1.1, "legend.fontsize": 12}):
-    fig, axes = plt.subplots(1, 2, figsize=(9.0, 3.6))
+with plt.rc_context({"font.family": "sans-serif", "font.weight": "bold", "axes.labelweight": "bold", "axes.labelsize": 11,
+                     "xtick.labelsize": 10, "ytick.labelsize": 10, "axes.linewidth": 1.1, "legend.fontsize": 9.5}):
+    fig, axes = plt.subplots(1, 2, figsize=(7.0, 2.8))  # the size and fonts of rollback_micro.py (single column)
     for k, (ax, (ylabel, fmt, sub, draw)) in enumerate(zip(axes, PANELS)):
         top = 1.5 * max(np.percentile(v[k], 75) for v in data.values())
         for m, (_, color, _) in enumerate(MODELS):
             for i, (_, bench) in enumerate(BENCHES):
                 x = i + (m - 0.5) * WIDTH * 1.15
                 med, at = draw(ax, x, data[(color, bench)][k], color, top)
-                ax.annotate(fmt.format(med), (x, at), xytext=(0, 3), textcoords="offset points", ha="center", va="bottom", fontsize=9.5, fontweight="bold",
+                ax.annotate(fmt.format(med), (x, at), xytext=(0, 3), textcoords="offset points", ha="center", va="bottom", fontsize=8, fontweight="bold",
                             bbox={"boxstyle": "square,pad=0.1", "facecolor": "white", "edgecolor": "none"}, zorder=5)
         ax.set_xticks(range(len(BENCHES))); ax.set_xticklabels([b for b, _ in BENCHES]); ax.set_xlim(-0.6, len(BENCHES) - 0.4)
         ax.set_ylim(0, top * 1.12); ax.set_ylabel(ylabel)
-        ax.set_xlabel(sub, fontsize=13, labelpad=8)
+        ax.set_xlabel(sub, fontsize=11, labelpad=6)
         for sp in ("top", "right"): ax.spines[sp].set_visible(False)
     handles = [plt.Rectangle((0, 0), 1, 1, facecolor=c, edgecolor="black", linewidth=0.9) for _, c, _ in MODELS]
     fig.legend(handles, [l for l, _, _ in MODELS], loc="upper center", ncol=2, frameon=False, bbox_to_anchor=(0.5, 1.04), columnspacing=2.5)
