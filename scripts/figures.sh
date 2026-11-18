@@ -18,6 +18,7 @@ fig $P/tidesand_mechanisms.py                            # one mechanism at a ti
 fig $P/tidesand_ablation.py                              # parameter sensitivity (AlgoTune Sonnet)
 fig $P/policies_tool_call_distribution.py bulk80-whole   # tool-call slowdown distributions (Sonnet workloads)
 fig $P/rollback_micro.py                                 # how often selective rollback acts and what it costs
+fig $P/workload_burstiness.py                            # spikiness and burst length of each workload's own CPU demand (strict)
 # Motivation
 fig $P/cpu_memory.py output/replay/algotune/run4-max-50/strict output/plots/paper/cpu-memory.pdf algotune-sylvester-solver algotune-minimum-volume-ellipsoid
 fig $P/algotune_overcommit_run.py 10                     # AlgoTune rewards: a strict vs an overcommitted recording
