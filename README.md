@@ -2,7 +2,7 @@
 
 TideBox replays recorded agent runs in sandboxes without calling a model, and analyses the replays. It is the
 replay harness of the TideSand paper, and this repository holds what is needed to reproduce the paper's results with
-[tidelet](..), the sandbox daemon TideSand runs in.
+[tidelet](https://github.com/TideSand/tidelet/tree/paper), the sandbox daemon TideSand runs in.
 
 A recording (a *tape*) holds every model request and response of one agent run, with its timing. To replay it,
 the real harness (Claude Code, the version that made the recording) runs inside a fresh sandbox with the task's
@@ -36,11 +36,12 @@ To check the figures without running anything, download the released results (st
 
 ## 1. Get the code
 
-TideBox lives inside the tidelet checkout:
+TideBox lives inside the tidelet checkout. The paper's results come from tidelet's `paper` branch:
 
 ```sh
 git clone https://github.com/TideSand/tidelet.git
 cd tidelet
+git switch paper
 git clone https://github.com/TideSand/tidebox.git
 cd tidebox
 ```
@@ -180,7 +181,7 @@ scripts/figures.sh       # -> output/plots/paper/
 | Fig. 11 | `tidesand-ablation.pdf` | `compare/sensitivity` of AlgoTune Sonnet |
 | Fig. 12 | `policies-tool-call-distribution.pdf` | the per-call data of `compare/bulk80-whole`, Sonnet workloads |
 | Fig. 13 | `rollback-micro.pdf` | the `tidesand` runs' `tideletd.log` (checkpoints, rollbacks) and `metrics.txt` |
-| | `workload-burstiness.pdf` | the telemetry of `strict` on the six workloads: each sandbox's peak-to-mean CPU and the length of its bursts (runs of consecutive seconds at 0.5 cores or more that reach 4 cores) |
+| | `workload-burstiness.pdf` | the telemetry of `strict` on the six workloads: each sandbox's peak-to-mean CPU and the variance / mean of its CPU (cores) |
 
 Each script also runs on its own from this directory, e.g. `.venv/bin/python
 workload/replaykit/plot/paper/throughput_2x3.py`; its docstring says what it reads.

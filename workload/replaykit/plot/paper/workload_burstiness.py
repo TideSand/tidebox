@@ -1,14 +1,12 @@
 """workload_burstiness.py [OUT]: the CPU burstiness of each workload's strict run, per sandbox, in 1-s bins.
-A burst is a run of consecutive seconds at >= ACTIVE cores in which at least one second reaches BURST cores.
-(a) peak / mean CPU per sandbox (violins); (b) length of each burst (boxes). Distributions span the 5th-95th percentiles,
-cut at the axis top (1.5x the largest upper quartile). Default OUT output/plots/paper/workload-burstiness.pdf."""
-import sys, os, csv, glob, datetime as dt
+(a) peak / mean CPU (violins); (b) dispersion, the variance / mean of CPU in cores (boxes): sandboxes packed to an average
+load of M cores swing by about sqrt(M x dispersion) cores around it. Distributions span the 5th-95th percentiles, cut at
+the axis top (1.5x the largest upper quartile). Default OUT output/plots/paper/workload-burstiness.pdf."""
+import sys, csv, glob, datetime as dt
 import numpy as np
 import matplotlib; matplotlib.use("Agg"); import matplotlib.pyplot as plt
 
 OUT = sys.argv[1] if len(sys.argv) > 1 else "output/plots/paper/workload-burstiness.pdf"
-ACTIVE = float(os.environ.get("ACTIVE", "0.5"))
-BURST = float(os.environ.get("BURST", "3.5"))  # 4 cores, allowing for measurement jitter (3.99)
 BENCHES = [("AlgoTune", "algotune"), ("Terminal-\nBench", "terminal-bench-4.0"), ("TB\nScience", "terminal-bench-science")]
 MODELS = [("Sonnet 5.5", "#E69F00", {"algotune": "run4-max-50", "terminal-bench-4.0": "run2-medium", "terminal-bench-science": "run1-rand50"}),
           ("DeepSeek V4.1 Flash", "#56B4E9", {b: "run1-deepseek-v4.1-flash" for _, b in BENCHES})]
@@ -30,15 +28,13 @@ def unit_cpu(path):
 
 
 def workload(run_dir):
-    """(peak/mean per sandbox, length of each burst)."""
-    ratio, length = [], []
+    """(peak/mean, variance/mean) per sandbox."""
+    ratio, disp = [], []
     for p in glob.glob(f"{run_dir}/*/tape.telemetry.csv"):
         c = unit_cpu(p)
         if c is None or c.mean() <= 0: continue
-        ratio.append(c.max() / c.mean())
-        d = np.diff(np.r_[0, (c >= ACTIVE).astype(int), 0]); starts, ends = np.where(d == 1)[0], np.where(d == -1)[0]
-        length += [b - a for a, b in zip(starts, ends) if c[a:b].max() >= BURST]
-    return np.array(ratio), np.array(length)
+        ratio.append(c.max() / c.mean()); disp.append(c.var() / c.mean())
+    return np.array(ratio), np.array(disp)
 
 
 def violin(ax, x, v, color, top):
@@ -63,10 +59,10 @@ for _, color, recs in MODELS:
     for _, bench in BENCHES:
         data[(color, bench)] = workload(f"output/replay/{bench}/{recs[bench]}/strict")
         q = lambda v: "/".join(f"{x:.1f}" for x in np.percentile(v, [25, 50, 75]))
-        r, l = data[(color, bench)]
-        print(f"{bench:24s} {recs[bench]:26s} peak/mean {q(r):>16s}  bursts {len(l):4d} length s {q(l):>16s}")
+        r, d = data[(color, bench)]
+        print(f"{bench:24s} {recs[bench]:26s} peak/mean {q(r):>16s}  variance/mean {q(d):>14s}")
 
-PANELS = [("Peak / mean CPU", "{:.0f}×", "(a) Spikiness", violin), ("Burst length (s)", "{:.0f} s", "(b) Burst length", box)]
+PANELS = [("CPU peak / mean", "{:.0f}×", "(a) Spikiness", violin), ("CPU variance / mean", "{:.1f}", "(b) Dispersion", box)]
 with plt.rc_context({"font.family": "sans-serif", "font.weight": "bold", "axes.labelweight": "bold", "axes.labelsize": 11,
                      "xtick.labelsize": 10, "ytick.labelsize": 10, "axes.linewidth": 1.1, "legend.fontsize": 9.5}):
     fig, axes = plt.subplots(1, 2, figsize=(7.0, 2.8))  # the size and fonts of rollback_micro.py (single column)

@@ -67,6 +67,8 @@ check() {
   for b in containerd runc containerd-shim-runc-v2; do command -v "$b" > /dev/null && have "$b" || lack "$b"; done
   echo "tidelet:"
   command -v go > /dev/null && have "$(go version)" || lack "go $GO_VERSION"
+  branch=$(git -C "$TIDELET" rev-parse --abbrev-ref HEAD 2>/dev/null)
+  [ "$branch" = paper ] && have "tidelet on the paper branch" || lack "tidelet on the paper branch (on ${branch:-no branch}: git -C $TIDELET switch paper)"
   [ -x "$TIDELET/bin/tideletd" ] && [ -x "$TIDELET/bin/tidelet" ] && [ -x "$TIDELET/bin/tidelet-init" ] && have "$TIDELET/bin (tideletd, tidelet, tidelet-init)" || lack "tidelet binaries (cd $TIDELET && make build)"
   [ -x /opt/cni/bin/bridge ] && have "CNI plugins" || lack "CNI plugins in /opt/cni/bin"
   # tideletd writes its own network (10-tidelet.conflist, bridge tidelet0, 10.88.0.0/16) only into an empty
@@ -124,6 +126,7 @@ prepare() {
     curl -fsSL "https://go.dev/dl/go${GO_VERSION}.linux-$(dpkg --print-architecture).tar.gz" -o /tmp/go.tgz \
       && sudo rm -rf /usr/local/go && sudo tar -C /usr/local -xzf /tmp/go.tgz && rm -f /tmp/go.tgz || die "go install failed"
   fi
+  [ "$(git -C "$TIDELET" rev-parse --abbrev-ref HEAD 2>/dev/null)" = paper ] || die "$TIDELET is not on tidelet's paper branch (git -C $TIDELET switch paper)"
   log "tidelet: make build"
   (cd "$TIDELET" && make build > /dev/null) || die "make build failed in $TIDELET"
   if [ ! -x /opt/cni/bin/bridge ]; then
