@@ -1,5 +1,5 @@
-"""rollback_micro.py [OUT.pdf]: the selective-rollback micro figure (rollback-micro.pdf): per workload, (b) the share of
-model calls rolled back and (c) the CPU overhead of the mechanism as a share of all tool execution in the run, stacked:
+"""rollback_micro.py [OUT.pdf]: the selective-rollback micro figure (rollback-micro.pdf): per workload, (a) the share of
+model calls rolled back and (b) the CPU overhead of the mechanism as a share of all tool execution in the run, stacked:
 checkpoint = the time sandboxes were paused in CRIU dumps, rollback = the execution discarded by rollbacks (release to stop
 of each rolled-back call, redone after the restore). One colour per model (Okabe-Ito orange for Sonnet 5.5, sky blue for
 DeepSeek V4.1 Flash); a checkpoint segment is the greyed version of its model's colour.
@@ -68,7 +68,7 @@ with plt.rc_context({"font.family": "sans-serif", "font.weight": "bold", "axes.l
             b.bar(x, ck, W, color=grey(c), edgecolor="white", linewidth=0.6)
             b.bar(x, rb, W, bottom=ck, color=c, edgecolor="white", linewidth=0.6)
             b.text(x, ck + rb + 0.05, f"{ck + rb:.1f}%", ha="center", va="bottom", fontsize=6.8)
-    for ax, lab, title in ((a, "Calls rolled back (%)", "(b) Rollback frequency"), (b, "CPU overhead (%)", "(c) Rollback overhead")):
+    for ax, lab, title in ((a, "Calls rolled back (%)", "(a) Rollback frequency"), (b, "CPU overhead (%)", "(b) Rollback overhead")):
         ax.set_xticks(range(len(benches))); ax.set_xticklabels(benches)
         ax.set_ylabel(lab); ax.set_xlabel(title, fontsize=11, labelpad=6)
         ax.spines["top"].set_visible(False); ax.spines["right"].set_visible(False)
@@ -76,7 +76,7 @@ with plt.rc_context({"font.family": "sans-serif", "font.weight": "bold", "axes.l
     b.set_ylim(0, max(r["ckpt_pct"] + r["rb_over_pct"] for r in rows) * 1.3)
     fig.legend(handles=[Patch(facecolor=c, label=lab) for _, lab, c in MODELS], frameon=False, fontsize=9.5, loc="upper center",
                ncol=len(MODELS), bbox_to_anchor=(0.5, 1.0), columnspacing=2.0)  # the model legend, on top of both panels
-    # (c): one entry per segment kind, its swatch split into the two models' colours (the models are named in (b)).
+    # (b): one entry per segment kind, its swatch split into the two models' colours (the models are named in the top legend).
     from matplotlib.legend_handler import HandlerTuple
     b.legend([tuple(Patch(facecolor=c) for _, _, c in MODELS), tuple(Patch(facecolor=grey(c)) for _, _, c in MODELS)],
              ["Rollback", "Checkpoint"], handler_map={tuple: HandlerTuple(ndivide=None, pad=0)},
